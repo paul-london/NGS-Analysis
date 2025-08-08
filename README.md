@@ -40,8 +40,6 @@ This repository contains Jupyter notebooks for **Next-Generation Sequencing (NGS
 - **Jupyter Notebook:** Accessible remotely on port `8888`
 - **Python Environment:** Includes bioinformatics and data science packages like `Biopython`, `numpy`, `pandas`, and `matplotlib`
 - **VS Code Integration:** Connect VS Code to the remote Jupyter server for seamless editing and execution
-- **Shared Folders:** Project files available via VirtualBox shared folder mounted at `/media/sf_NGS-Analysis` with a symlink for convenience
-
 ---
 
 ## 🔧 How to Run Jupyter Notebook
