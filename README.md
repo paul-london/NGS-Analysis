@@ -6,6 +6,34 @@ This repository contains Jupyter notebooks for **Next-Generation Sequencing (NGS
 
 ---
 
+## 🔄 Workflow
+
+1. **Data Preparation**  
+   Upload or mount raw sequencing data (FASTQ files) into the Linux VM project directory.  
+   _Tools: Linux command-line utilities (`rsync`, `scp`), VirtualBox shared folders_
+
+2. **Quality Control**  
+   Run QC analyses to check sequencing quality.  
+   _Tools: [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [MultiQC](https://multiqc.info/)_
+
+3. **Alignment & Processing**  
+   Map reads to a reference genome and process alignments.  
+   _Tools: BWA, Bowtie2, SAMtools, [GATK](https://gatk.broadinstitute.org/hc/en-us)_
+
+4. **Variant Calling & Annotation**  
+   Identify genetic variants and annotate their effects.  
+   _Tools: GATK HaplotypeCaller, SnpEff, ANNOVAR_
+
+5. **Visualization & Reporting**  
+   Generate plots, summaries, and reports for data interpretation.  
+   _Tools: Matplotlib, Seaborn, Jupyter notebooks_
+
+6. **Iterative Analysis**  
+   Refine parameters, rerun analyses, and document insights.  
+   _Tools: Jupyter notebooks, version control (Git)_
+
+---
+
 ## 🖥️ Environment Setup
 
 - **Linux VM:** CentOS 7 (or compatible) running the Jupyter Notebook server
