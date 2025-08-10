@@ -15,6 +15,7 @@
 *.bam
 *.bai
 *.sam
+*.cram
 
 # Variant files
 *.vcf
