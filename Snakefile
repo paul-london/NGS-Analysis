@@ -45,7 +45,7 @@ rule align_reads:
         R1=lambda w: SAMPLES[w.sample]["R1"],
         R2=lambda w: SAMPLES[w.sample]["R2"]
     output:
-        temp("results/bam/{sample}.bam")
+        temp("output/{sample}.bam")
     shell:
         """
         bwa mem -t 8 {input.ref} {input.R1} {input.R2} | \
@@ -56,12 +56,12 @@ rule align_reads:
 
 rule call_variants:
     input:
-        bam="results/bam/{sample}.bam",
-        bai="results/bam/{sample}.bam.bai",
+        bam="output/{sample}.bam",
+        bai="output/{sample}.bam.bai",
         ref=REF,
         bed=lambda w: SAMPLES[w.sample]["bed"]
     output:
-        vcf="results/vcf/{sample}.vcf.gz"
+        vcf="results/{sample}.vcf.gz"
     shell:
         """
         gatk HaplotypeCaller \
