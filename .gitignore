@@ -38,7 +38,8 @@ __pycache__/
 .snakemake/
 *.snakemake
 
-# Results and output folders (customize if your output folder is named differently)
+# Reference, results and output folders (customize if your output folder is named differently)
+reference/
 results/
 output/
 logs/
