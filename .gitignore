@@ -44,6 +44,37 @@ results/
 output/
 logs/
 
+# Cache and temporary folders
+.cache/
+tmp/
+temp/
+
+# Log directories and log files
+logs/
+*.log
+
+# Container-related files
+*.sif
+.docker/
+
+# Cluster or HPC job files
+*.o*
+*.e*
+slurm-*
+
+# Compiled binaries or executables
+*.exe
+*.out
+*.bin
+
+# Environment-specific config files
+.env
+.envrc
+
+# Additional IDE configs
+.idea/
+*.iml
+
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 
