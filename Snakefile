@@ -1,92 +1,73 @@
-# Config section: adjust paths and sample names here
-SAMPLES = ["sample"]  # list your samples here
-REF = "references/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+import glob
+import re
+
+REF = "NGS-Analysis-Raw-Files/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+
+# Pattern: <sampleID>_<panel>_<seqIndex>_R1_001.fastq.gz
+R1_files = glob.glob("NGS-Analysis-Raw-Files/reads/*_R1_001.fastq.gz")
+
+SAMPLES = {}
+for f in R1_files:
+    basename = f.split("/")[-1]
+    match = re.match(r"(F\d+)_(.+)_(S\d+)_R1_001\.fastq\.gz", basename)
+    if not match:
+        raise ValueError(f"Filename {basename} does not match expected pattern F<id>_<panel>_S##_R1_001.fastq.gz")
+    sample_id, panel, seq_index = match.groups()
+    sample_name = f"{sample_id}_{panel}"  # logical sample name in outputs
+    SAMPLES[sample_name] = {
+        "panel": panel,
+        "R1": f,
+        "R2": f.replace("_R1_001.fastq.gz", "_R2_001.fastq.gz"),
+        "bed": f"reference/panel/{panel}.bed"
+    }
 
 rule all:
     input:
-        expand("results/{sample}/variants/{sample}.vcf.gz", sample=SAMPLES)
+        expand("results/vcf/{sample}.vcf.gz", sample=SAMPLES.keys())
 
-rule bwa_mem:
+rule index_reference:
     input:
-        r1="data/raw_reads/{sample}_R1.fastq.gz",
-        r2="data/raw_reads/{sample}_R2.fastq.gz",
-        ref=REF + ".fa" if not REF.endswith(".fa") else REF
+        fasta=REF
     output:
-        temp("results/{sample}/aligned/{sample}.sam")
-    threads: 4
+        fasta_fai="reference/genome/hg38.fai",
+        dict="reference/genome/hg38.dict"
     shell:
         """
-        bwa mem -M -t {threads} {input.ref} {input.r1} {input.r2} > {output}
+        samtools faidx {input.fasta}
+        gatk CreateSequenceDictionary -R {input.fasta} -O {output.dict}
         """
 
-rule sam_to_sorted_bam:
+rule align_reads:
     input:
-        "results/{sample}/aligned/{sample}.sam"
-    output:
-        "results/{sample}/aligned/{sample}_sorted.bam"
-    shell:
-        """
-        samtools view -Sb {input} | samtools sort -o {output}
-        """
-
-rule mark_duplicates:
-    input:
-        bam="results/{sample}/aligned/{sample}_sorted.bam"
-    output:
-        bam="results/{sample}/aligned/{sample}_dedup.bam",
-        metrics="results/{sample}/aligned/{sample}_dedup.metrics.txt"
-    shell:
-        """
-        picard MarkDuplicates I={input.bam} O={output.bam} M={output.metrics} CREATE_INDEX=true
-        """
-
-rule base_recalibration:
-    input:
-        bam="results/{sample}/aligned/{sample}_dedup.bam",
-        bai="results/{sample}/aligned/{sample}_dedup.bai",
         ref=REF,
+        ref_fai=REF + ".fai",
         ref_dict=REF.rsplit(".", 1)[0] + ".dict",
-        ref_fai=REF + ".fai"
+        R1=lambda w: SAMPLES[w.sample]["R1"],
+        R2=lambda w: SAMPLES[w.sample]["R2"]
     output:
-        table="results/{sample}/recal/{sample}_recal_data.table"
-    params:
-        known_sites="references/known_sites.vcf"  # replace with your known sites vcf path
+        temp("results/bam/{sample}.bam")
     shell:
         """
-        gatk BaseRecalibrator -I {input.bam} -R {input.ref} --known-sites {params.known_sites} -O {output.table}
+        bwa mem -t 8 {input.ref} {input.R1} {input.R2} | \
+        samtools view -bS - | \
+        samtools sort -o {output}
+        samtools index {output}
         """
 
-rule apply_bqsr:
+rule call_variants:
     input:
-        bam="results/{sample}/aligned/{sample}_dedup.bam",
-        bai="results/{sample}/aligned/{sample}_dedup.bai",
-        recal_table="results/{sample}/recal/{sample}_recal_data.table",
-        ref=REF
+        bam="results/bam/{sample}.bam",
+        bai="results/bam/{sample}.bam.bai",
+        ref=REF,
+        bed=lambda w: SAMPLES[w.sample]["bed"]
     output:
-        bam="results/{sample}/recal/{sample}_recal.bam"
+        vcf="results/vcf/{sample}.vcf.gz"
     shell:
         """
-        gatk ApplyBQSR -R {input.ref} -I {input.bam} --bqsr-recal-file {input.recal_table} -O {output.bam}
+        gatk HaplotypeCaller \
+            -R {input.ref} \
+            -I {input.bam} \
+            -L {input.bed} \
+            -O {output.vcf}
+        tabix -p vcf {output.vcf}
         """
-
-rule haplotype_caller:
-    input:
-        bam="results/{sample}/recal/{sample}_recal.bam",
-        bai="results/{sample}/recal/{sample}_recal.bai",
-        ref=REF
-    output:
-        vcf="results/{sample}/variants/{sample}.vcf.gz"
-    shell:
-        """
-        gatk HaplotypeCaller -R {input.ref} -I {input.bam} -O {output.vcf} -ERC GVCF
-        """
-rule all:
-    input:
-        "output.txt"
-
-rule create_output:
-    output:
-        "output.txt"
-    shell:
-        "echo 'Hello Snakemake!' > output.txt"
-
