@@ -26,14 +26,26 @@ for f in R1_files:
 
 rule all:
     input:
-        expand("results/{sample}.vcf.gz", sample=SAMPLES.keys())
+        expand("results/vcf/{sample}.vcf.gz", sample=SAMPLES.keys()),
+        expand("results/{sample}.variants.tsv", sample=SAMPLES.keys()),
+        "qc/aligned/summary_metrics.csv",
+        "qc/fastqc/fastqc_summary.csv",
+        f"{REF}.fai",
+        f"{REF}.dict",
+        f"{REF}.amb",
+        f"{REF}.ann",
+        f"{REF}.bwt",
+        f"{REF}.pac",
+        f"{REF}.sa"
+
+# Indexing reference genome
 
 rule index_reference:
     input:
         fasta=REF
     output:
-        fasta_fai="reference/genome/hg38.fai",
-        dict="reference/genome/hg38.dict"
+        fasta_fai=f"{REF}.fai",
+        dict=f"{REF}.dict"
     shell:
         """
         samtools faidx {input.fasta}
@@ -44,22 +56,71 @@ rule bwa_index:
     input:
         fasta=REF
     output:
-        amb=REF + ".amb",
-        ann=REF + ".ann",
-        bwt=REF + ".bwt",
-        pac=REF + ".pac",
-        sa=REF + ".sa"
+        amb=f"{REF}.amb",
+        ann=f"{REF}.ann",
+        bwt=f"{REF}.bwt",
+        pac=f"{REF}.pac",
+        sa=f"{REF}.sa"
     shell:
         "bwa index {input.fasta}"
+
+# FastQC
+
+rule fastqc:
+    input:
+        fq="data/raw_reads/{sample}_{read}_001.fastq.gz"
+    output:
+        html="qc/fastqc/{sample}_{read}_001_fastqc.html",
+        zip="qc/fastqc/{sample}_{read}_001_fastqc.zip"
+    threads: 2
+    shell:
+        """
+        fastqc -t {threads} -o qc/fastqc {input.fq}
+        """
+
+rule parse_fastqc_summary:
+    input:
+        summary="qc/fastqc/{sample}_{read}_001_fastqc/summary.txt"
+    output:
+        csv="qc/fastqc/{sample}_{read}_metrics.csv"
+    run:
+        with open(input.summary) as f:
+            lines = f.readlines()
+        with open(output.csv, "w") as out:
+            out.write("status,metric\n")
+            for line in lines:
+                status, metric, _ = line.strip().split("\t")
+                out.write(f"{status},{metric}\n")
+
+rule aggregate_fastqc_metrics:
+    input:
+        expand("qc/fastqc/{sample}_{read}_metrics.csv", sample=SAMPLES.keys(), read=["R1", "R2"])
+    output:
+        "qc/fastqc/fastqc_summary.csv"
+    run:
+        import pandas as pd
+        dfs = []
+        for csvfile in input:
+            df = pd.read_csv(csvfile)
+            filename = csvfile.split("/")[-1]
+            sample = filename.split("_")[0]
+            read = filename.split("_")[1]
+            df["sample"] = sample
+            df["read"] = read
+            dfs.append(df)
+        combined = pd.concat(dfs)
+        combined.to_csv(output[0], index=False)
+
+# Alignment
 
 rule align_reads:
     input:
         ref=REF,
-        ref_amb="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.amb",
-        ref_ann="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.ann",
-        ref_bwt="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bwt",
-        ref_pac="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.pac",
-        ref_sa="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.sa",
+        ref_amb=f"{REF}.amb",
+        ref_ann=f"{REF}.ann",
+        ref_bwt=f"{REF}.bwt",
+        ref_pac=f"{REF}.pac",
+        ref_sa=f"{REF}.sa",
         R1=lambda w: SAMPLES[w.sample]["R1"],
         R2=lambda w: SAMPLES[w.sample]["R2"]
     output:
@@ -74,6 +135,56 @@ rule align_reads:
         samtools index {output.bam}
         """
 
+# Alignment QC
+
+rule samtools_flagstat:
+    input:
+        bam="output/{sample}.bam"
+    output:
+        flagstat="qc/aligned/{sample}.flagstat.txt"
+    shell:
+        """
+        samtools flagstat {input.bam} > {output.flagstat}
+        """
+
+rule samtools_stats:
+    input:
+        bam="output/{sample}.bam"
+    output:
+        stats="qc/aligned/{sample}.stats.txt"
+    shell:
+        """
+        samtools stats {input.bam} > {output.stats}
+        """
+
+rule aggregate_flagstat:
+    input:
+        expand("qc/aligned/{sample}.flagstat.txt", sample=SAMPLES.keys())
+    output:
+        "qc/aligned/flagstat_summary.csv"
+    run:
+        import re
+        import csv
+
+        summary = []
+        for f in input:
+            sample = f.split("/")[-1].replace(".flagstat.txt", "")
+            with open(f) as fh:
+                lines = fh.readlines()
+            # Parse total reads and mapped reads from flagstat output
+            total_reads = int(re.match(r"(\d+) \+ \d+ in total", lines[0]).group(1))
+            mapped_reads = int(re.match(r"(\d+) \+ \d+ mapped", lines[4]).group(1))
+            pct_mapped = mapped_reads / total_reads * 100 if total_reads else 0
+            summary.append({"sample": sample, "total_reads": total_reads, "mapped_reads": mapped_reads, "pct_mapped": pct_mapped})
+
+        keys = summary[0].keys()
+        with open(output[0], "w", newline="") as csvfile:
+            dict_writer = csv.DictWriter(csvfile, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(summary)
+
+# Variant calling
+
 rule call_variants:
     input:
         bam="output/{sample}.bam",
@@ -81,7 +192,7 @@ rule call_variants:
         ref=REF,
         bed=lambda w: SAMPLES[w.sample]["bed"]
     output:
-        vcf="results/{sample}.vcf.gz"
+        vcf="results/vcf/{sample}.vcf.gz"
     shell:
         """
         gatk HaplotypeCaller \
@@ -90,4 +201,14 @@ rule call_variants:
             -L {input.bed} \
             -O {output.vcf}
         tabix -p vcf {output.vcf}
+        """
+
+rule extract_variants:
+    input:
+        vcf="results/vcf/{sample}.vcf.gz"
+    output:
+        tsv="results/{sample}.variants.tsv"
+    shell:
+        """
+        bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\n' {input.vcf} > {output.tsv}
         """
