@@ -1,6 +1,8 @@
 # Reference genome files
 *.fa
 *.fasta
+*.fastq
+*.fq
 *.fai
 *.dict
 
