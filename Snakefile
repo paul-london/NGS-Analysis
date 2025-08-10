@@ -1,10 +1,13 @@
 import glob
 import re
+import collections
+import collections.abc
+collections.Iterable = collections.abc.Iterable
 
-REF = "NGS-Analysis-Raw-Files/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+REF = "reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 
 # Pattern: <sampleID>_<panel>_<seqIndex>_R1_001.fastq.gz
-R1_files = glob.glob("NGS-Analysis-Raw-Files/reads/*_R1_001.fastq.gz")
+R1_files = glob.glob("data/raw_reads/*_R1_001.fastq.gz")
 
 SAMPLES = {}
 for f in R1_files:
@@ -23,7 +26,7 @@ for f in R1_files:
 
 rule all:
     input:
-        expand("results/vcf/{sample}.vcf.gz", sample=SAMPLES.keys())
+        expand("results/{sample}.vcf.gz", sample=SAMPLES.keys())
 
 rule index_reference:
     input:
@@ -37,21 +40,38 @@ rule index_reference:
         gatk CreateSequenceDictionary -R {input.fasta} -O {output.dict}
         """
 
+rule bwa_index:
+    input:
+        fasta=REF
+    output:
+        amb=REF + ".amb",
+        ann=REF + ".ann",
+        bwt=REF + ".bwt",
+        pac=REF + ".pac",
+        sa=REF + ".sa"
+    shell:
+        "bwa index {input.fasta}"
+
 rule align_reads:
     input:
         ref=REF,
-        ref_fai=REF + ".fai",
-        ref_dict=REF.rsplit(".", 1)[0] + ".dict",
+        ref_amb="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.amb",
+        ref_ann="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.ann",
+        ref_bwt="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.bwt",
+        ref_pac="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.pac",
+        ref_sa="reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa.sa",
         R1=lambda w: SAMPLES[w.sample]["R1"],
         R2=lambda w: SAMPLES[w.sample]["R2"]
     output:
-        temp("output/{sample}.bam")
+        bam="output/{sample}.bam",
+        bai="output/{sample}.bam.bai"
+    threads: 8
     shell:
         """
-        bwa mem -t 8 {input.ref} {input.R1} {input.R2} | \
+        bwa mem -t {threads} {input.ref} {input.R1} {input.R2} | \
         samtools view -bS - | \
-        samtools sort -o {output}
-        samtools index {output}
+        samtools sort -o {output.bam}
+        samtools index {output.bam}
         """
 
 rule call_variants:
