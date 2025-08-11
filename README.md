@@ -28,13 +28,13 @@ The core workflow occurs with Snakemake while a Jupyter Notebook houses data ana
 
 Before running the pipeline, please ensure the following files and directories are available and correctly placed:
 
-| File/Directory                              | Description                                       | Location and Format                        |
-|--------------------------------------------|-------------------------------------------------|----------------------------------------|
-| Raw sequencing data (FASTQ files)           | Input reads, paired-end files                    | `data/raw_reads/{sample}_R1_001.fastq.gz` and `_R2_001.fastq.gz` |
-| Reference genome FASTA                      | Reference genome for alignment                    | `reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa`    |
-| Reference genome index files                | Index files for the reference (will be created if missing) | Same directory as reference FASTA      |
-| BED files for target panels                  | Target regions for variant calling                | `reference/panel/{panel}.bed`           |
-| Known sites VCF                             | Known variant sites for base recalibration       | `reference/known_sites.vcf`             |
+| Data                                       | File Type              |Description                                       | Location and Format                        |
+|--------------------------------------------|----------------|-------------------------------------------------|----------------------------------------|
+| Raw sequencing data (FASTQ files)          | FASTQ          | Input reads, paired-end files                    | `data/raw_reads/{sample}_R1_001.fastq.gz` and `_R2_001.fastq.gz` |
+| Reference genome FASTA                     | FASTA          | Reference genome for alignment                    | `reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa`    |
+| Reference genome index files               | Multiple       | Index files for the reference (will be created if missing) | Same directory as reference FASTA      |
+| BED files for target panels                | BED            | Target regions for variant calling                | `reference/panel/{panel}.bed`           |
+| Known sites VCF                            | VCF            | Known variant sites for base recalibration       | `reference/known_sites.vcf`             |
 
 If any file is missing, please obtain or generate it before running the workflow. Make sure all paths match those expected by the pipeline configuration.
 
