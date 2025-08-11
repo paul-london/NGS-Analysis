@@ -216,7 +216,7 @@ rule base_recalibrator:
         bam="data/deduplicated/{sample}.dedup.bam",
         bai="data/deduplicated/{sample}.dedup.bam.bai",
         ref=REF,
-        known_sites="reference/known_sites.vcf"  # e.g., dbSNP or other trusted variants
+        known_sites="reference/variants/All_20180418.vcf.bgz"  # e.g., dbSNP or other trusted variants
     output:
         recal_table="data/recalibrated_reads/{sample}.recal.table"
     shell:
