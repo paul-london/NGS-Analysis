@@ -40,7 +40,9 @@ If any file is missing, please obtain or generate it before running the workflow
 
 ---
 
-## ⚙️ Environment Setup
+## ⚙️ Running the Pipeline
+
+### Environment Setup
 
 - **Linux VM:** CentOS 7 (or compatible) running the Jupyter Notebook server
 - **Jupyter Notebook:** Accessible remotely on port `8888` after starting the server:
@@ -56,4 +58,15 @@ To ensure all necessary tools and dependencies are installed, create and activat
 ```bash
 conda env create -f environment.yaml
 conda activate pipeline
+```
+
+Then run the pipeline:
+```bash
+# Simulate workflow
+snakemake -n
+
+# Activate workflow
+snakemake -cores #
+```
+
 
