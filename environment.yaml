@@ -1,4 +1,4 @@
-name: bioinfo-pipeline
+name: pipeline
 channels:
   - conda-forge
   - bioconda
