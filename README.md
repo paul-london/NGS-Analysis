@@ -30,7 +30,7 @@ Before running the pipeline, please ensure the following files and directories a
 
 | Data                                       | File Type              |Description                                       | Location and Format                        |
 |--------------------------------------------|----------------|-------------------------------------------------|----------------------------------------|
-| Raw sequencing data         | FASTQ          | Input reads, paired-end files                    | `data/raw_reads/{sample}_R1_001.fastq.gz` and `_R2_001.fastq.gz` |
+| Raw sequencing data         | FASTQ          | Input reads, paired-end files                    | `data/raw_reads/{sample}_R1_001.fastq.gz` and `{sample}_R2_001.fastq.gz` |
 | Reference genome                    | FASTA          | Reference genome for alignment                    | `reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa`    |
 | Reference genome index files               | Multiple       | Index files for the reference (will be created if missing) | Same directory as reference FASTA      |
 | Genes included in panel                | BED            | Target regions (genes) for variant calling                | `reference/panel/{panel}.bed`           |
