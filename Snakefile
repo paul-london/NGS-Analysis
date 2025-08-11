@@ -28,8 +28,9 @@ for f in R1_files:
 
 rule all:
     input:
-        expand("results/vcf/{sample}.vcf.gz", sample=SAMPLES.keys()),
-        expand("results/{sample}.variants.tsv", sample=SAMPLES.keys()),
+        expand("data/variant_calls/{sample}.vcf.gz", sample=SAMPLES.keys()),
+        expand("data/variant_calls/{sample}.filtered.vcf.gz", sample=SAMPLES.keys()),
+        expand("data/variant_calls/{sample}.variants.tsv", sample=SAMPLES.keys()),
         expand("results/{sample}.annotated.vcf.gz", sample=SAMPLES.keys()),
         expand("qc/aligned_post_bqsr/{sample}.flagstat.txt", sample=SAMPLES.keys()),
         expand("qc/aligned_post_bqsr/{sample}.stats.txt", sample=SAMPLES.keys()),
@@ -339,21 +340,30 @@ rule call_variants:
         tabix -p vcf {output.vcf}
         """
 
-rule extract_variants:
+# Filter variants
+
+rule filter_variants:
     input:
-        vcf="data/variant_calls/{sample}.vcf.gz"
+        vcf="data/variant_calls/{sample}.vcf.gz",
+        ref=REF
     output:
-        tsv="results/{sample}.variants.tsv"
+        vcf="data/variant_calls/{sample}.filtered.vcf.gz"
     shell:
         """
-        bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\n' {input.vcf} > {output.tsv}
+        gatk VariantFiltration \
+            -R {input.ref} \
+            -V {input.vcf} \
+            --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0" \
+            --filter-name "FAIL" \
+            -O {output.vcf}
+        tabix -p vcf {output.vcf}
         """
 
 # Annotate variants
 
 rule annotate_variants:
     input:
-        vcf="data/variant_calls/{sample}.vcf.gz"
+        vcf="data/variant_calls/{sample}.filtered.vcf.gz"
     output:
         annotated_vcf="results/{sample}.annotated.vcf.gz",
         annotated_vcf_index="results/{sample}.annotated.vcf.gz.tbi"
@@ -363,4 +373,14 @@ rule annotate_variants:
         """
         snpEff {params.snpeff_db} {input.vcf} | bgzip -c > {output.annotated_vcf}
         tabix -p vcf {output.annotated_vcf}
+        """
+
+rule extract_variants:
+    input:
+        vcf="results/{sample}.annotated.vcf.gz"
+    output:
+        tsv="results/{sample}.variants.tsv"
+    shell:
+        """
+        bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\n' {input.vcf} > {output.tsv}
         """
