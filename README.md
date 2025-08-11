@@ -11,7 +11,7 @@ The core workflow occurs with Snakemake while a Jupyter Notebook houses data ana
 
 ---
 
-## 🧬 Workflow
+## 🛠️ Workflow
 
 | Step Number | Step Name              | Description                                                                                   | Tools                                                                                       |
 |:-----------:|------------------------|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
