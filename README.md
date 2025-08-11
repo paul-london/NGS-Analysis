@@ -13,8 +13,8 @@ The core workflow occurs with Snakemake while a Jupyter Notebook houses data ana
 
 ## 🔄 Workflow
 
-| Step Number | Step Name               | Description                                                                                   | Tools                                                                                       |
-|-------------|------------------------|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| Step Number | Step Name              | Description                                                                                   | Tools                                                                                       |
+|:-----------:|------------------------|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
 | 1           | Data Preparation       | Upload or mount raw sequencing data (FASTQ files) into the project directory.                 | Linux command-line utilities (`rsync`, `scp`), VirtualBox shared folders, SRA-tools (NCBI)  |
 | 2           | Quality Control        | Perform quality control analyses to assess sequencing data quality.                           | [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [MultiQC](https://multiqc.info/)             |
 | 3           | Alignment & Processing | Map reads to the reference genome and process alignments, including marking duplicates and base quality score recalibration (BQSR). Collect QC metrics before and after these steps. | BWA, Bowtie2, SAMtools, [GATK](https://gatk.broadinstitute.org/hc/en-us)                      |
