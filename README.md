@@ -44,19 +44,21 @@ If any file is missing, please obtain or generate it before running the workflow
 
 ### Environment Setup
 
-- **Linux VM:** CentOS 7 (or compatible) running the Jupyter Notebook server
-- **Jupyter Notebook:** Accessible remotely on port `8888` after starting the server:
+- Linux Environment: CentOS 7 (or compatible) running Jupyter Notebook server
+- Jupyter Notebook: Accessible remotely on port `8888` after starting the server:
 
      ```bash
    jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser
      
-- **Python Environment:** Includes bioinformatics and data science packages like `Biopython`, `numpy`, `pandas`, and `matplotlib`
-- **VS Code Integration:** Connect VS Code to the remote Jupyter server for seamless editing and execution
+- Python Environment: Includes bioinformatics and data science packages like `Biopython`, `numpy`, `pandas`, and `matplotlib`
+- VS Code Integration: Connect VS Code to the remote Jupyter server for data analysis
 
 To ensure all necessary tools and dependencies are installed, create and activate the conda environment (pipeline) using the provided `environment.yaml` file:
 
 ```bash
+# Create environment from environment.yaml (default name: pipeline)
 conda env create -f environment.yaml
+# Activate environment
 conda activate pipeline
 ```
 
