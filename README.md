@@ -24,6 +24,22 @@ The core workflow occurs with Snakemake while a Jupyter Notebook houses data ana
 
 ---
 
+## 📁 Required Files
+
+Before running the pipeline, please ensure the following files and directories are available and correctly placed:
+
+| File/Directory                              | Description                                       | Example Location                        |
+|--------------------------------------------|-------------------------------------------------|----------------------------------------|
+| Raw sequencing data (FASTQ files)           | Input reads, paired-end files                    | `data/raw_reads/{sample}_R1_001.fastq.gz` and `_R2_001.fastq.gz` |
+| Reference genome FASTA                      | Reference genome for alignment                    | `reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa`    |
+| Reference genome index files                | Index files for the reference (created if missing) | Same directory as reference FASTA      |
+| BED files for target panels                  | Target regions for variant calling                | `reference/panel/{panel}.bed`           |
+| Known sites VCF                             | Known variant sites for base recalibration       | `reference/known_sites.vcf`             |
+
+If any file is missing, please obtain or generate it before running the workflow. Make sure all paths match those expected by the pipeline configuration.
+
+---
+
 ## ⚙️ Environment Setup
 
 - **Linux VM:** CentOS 7 (or compatible) running the Jupyter Notebook server
