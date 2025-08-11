@@ -28,7 +28,7 @@ The core workflow occurs with Snakemake while a Jupyter Notebook houses data ana
 
 Before running the pipeline, please ensure the following files and directories are available and correctly placed:
 
-| File/Directory                              | Description                                       | Example Location                        |
+| File/Directory                              | Description                                       | Location and Format                        |
 |--------------------------------------------|-------------------------------------------------|----------------------------------------|
 | Raw sequencing data (FASTQ files)           | Input reads, paired-end files                    | `data/raw_reads/{sample}_R1_001.fastq.gz` and `_R2_001.fastq.gz` |
 | Reference genome FASTA                      | Reference genome for alignment                    | `reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa`    |
