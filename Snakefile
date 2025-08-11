@@ -28,22 +28,13 @@ for f in R1_files:
 
 rule all:
     input:
-        expand("data/variant_calls/{sample}.vcf.gz", sample=SAMPLES.keys()),
-        expand("data/variant_calls/{sample}.filtered.vcf.gz", sample=SAMPLES.keys()),
-        expand("data/variant_calls/{sample}.variants.tsv", sample=SAMPLES.keys()),
+        expand("data/variant_calls/{sample}.annotated.tsv", sample=SAMPLES.keys()),
         expand("results/{sample}.annotated.vcf.gz", sample=SAMPLES.keys()),
         expand("qc/aligned_post_bqsr/{sample}.flagstat.txt", sample=SAMPLES.keys()),
         expand("qc/aligned_post_bqsr/{sample}.stats.txt", sample=SAMPLES.keys()),
         "qc/fastqc/fastqc_summary.csv",
         "qc/aligned/summary_metrics.csv",
-        "qc/aligned_post_bqsr/summary_metrics.csv",
-        f"{REF}.fai",
-        f"{REF}.dict",
-        f"{REF}.amb",
-        f"{REF}.ann",
-        f"{REF}.bwt",
-        f"{REF}.pac",
-        f"{REF}.sa"
+        "qc/aligned_post_bqsr/summary_metrics.csv"
 
 # Indexing reference genome
 
@@ -384,3 +375,9 @@ rule extract_variants:
         """
         bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\n' {input.vcf} > {output.tsv}
         """
+
+# Remove intermediate files
+
+rule clean:
+    shell:
+        "rm -rf data/aligned_reads/* data/deduplicated/* data/recalibrated_reads/*"
