@@ -1,0 +1,18 @@
+name: bioinfo-pipeline
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9
+  - bwa
+  - samtools
+  - gatk4
+  - fastqc
+  - snpeff
+  - bcftools
+  - pandas
+  - numpy
+  - pip
+  - pip:
+      - snakemake
