@@ -13,29 +13,15 @@ The core workflow occurs with Snakemake while a Jupyter Notebook houses data ana
 
 ## 🔄 Workflow
 
-1. **Data Preparation**  
-   Upload or mount raw sequencing data (FASTQ files) into the project directory.  
-   _Tools: Linux command-line utilities (`rsync`, `scp`), VirtualBox shared folders, SRA-tools (NCBI)_
+| Step Number | Step Name               | Description                                                                                   | Tools                                                                                       |
+|-------------|------------------------|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| 1           | Data Preparation       | Upload or mount raw sequencing data (FASTQ files) into the project directory.                 | Linux command-line utilities (`rsync`, `scp`), VirtualBox shared folders, SRA-tools (NCBI)  |
+| 2           | Quality Control        | Perform quality control analyses to assess sequencing data quality.                           | [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [MultiQC](https://multiqc.info/)             |
+| 3           | Alignment & Processing | Map reads to the reference genome and process alignments, including marking duplicates and base quality score recalibration (BQSR). Collect QC metrics before and after these steps. | BWA, Bowtie2, SAMtools, [GATK](https://gatk.broadinstitute.org/hc/en-us)                      |
+| 4           | Variant Calling & Annotation | Detect genetic variants and annotate their functional effects.                                 | GATK HaplotypeCaller, SnpEff, ANNOVAR                                                       |
+| 5           | Visualization & Reporting | Create plots, summaries, and reports to facilitate data interpretation.                        | Matplotlib, Seaborn, Jupyter notebooks                                                     |
+| 6           | Iterative Analysis     | Refine analysis parameters, rerun workflows, and document findings for reproducibility.       | Jupyter notebooks, version control (Git)                                                   |
 
-2. **Quality Control**  
-   Run QC analyses to check sequencing quality.  
-   _Tools: [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [MultiQC](https://multiqc.info/)_
-
-3. **Alignment & Processing**  
-   Map reads to a reference genome and process alignments.  
-   _Tools: BWA, Bowtie2, SAMtools, [GATK](https://gatk.broadinstitute.org/hc/en-us)_
-
-4. **Variant Calling & Annotation**  
-   Identify genetic variants and annotate their effects.  
-   _Tools: GATK HaplotypeCaller, SnpEff, ANNOVAR_
-
-5. **Visualization & Reporting**  
-   Generate plots, summaries, and reports for data interpretation.  
-   _Tools: Matplotlib, Seaborn, Jupyter notebooks_
-
-6. **Iterative Analysis**  
-   Refine parameters, rerun analyses, and document insights.  
-   _Tools: Jupyter notebooks, version control (Git)_
 
 ---
 
