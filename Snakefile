@@ -1,5 +1,7 @@
 import glob
 import re
+import csv
+import pandas as pd
 import collections
 import collections.abc
 collections.Iterable = collections.abc.Iterable
@@ -28,8 +30,12 @@ rule all:
     input:
         expand("results/vcf/{sample}.vcf.gz", sample=SAMPLES.keys()),
         expand("results/{sample}.variants.tsv", sample=SAMPLES.keys()),
-        "qc/aligned/summary_metrics.csv",
+        expand("results/{sample}.annotated.vcf.gz", sample=SAMPLES.keys()),
+        expand("qc/aligned_post_bqsr/{sample}.flagstat.txt", sample=SAMPLES.keys()),
+        expand("qc/aligned_post_bqsr/{sample}.stats.txt", sample=SAMPLES.keys()),
         "qc/fastqc/fastqc_summary.csv",
+        "qc/aligned/summary_metrics.csv",
+        "qc/aligned_post_bqsr/summary_metrics.csv",
         f"{REF}.fai",
         f"{REF}.dict",
         f"{REF}.amb",
@@ -98,7 +104,6 @@ rule aggregate_fastqc_metrics:
     output:
         "qc/fastqc/fastqc_summary.csv"
     run:
-        import pandas as pd
         dfs = []
         for csvfile in input:
             df = pd.read_csv(csvfile)
@@ -124,14 +129,14 @@ rule align_reads:
         R1=lambda w: SAMPLES[w.sample]["R1"],
         R2=lambda w: SAMPLES[w.sample]["R2"]
     output:
-        bam="output/{sample}.bam",
-        bai="output/{sample}.bam.bai"
+        bam="data/aligned_reads/{sample}.bam",
+        bai="data/aligned_reads/{sample}.bam.bai"
     threads: 8
     shell:
         """
         bwa mem -t {threads} {input.ref} {input.R1} {input.R2} | \
         samtools view -bS - | \
-        samtools sort -o {output.bam}
+        samtools sort -o {output.bam} && \
         samtools index {output.bam}
         """
 
@@ -139,7 +144,7 @@ rule align_reads:
 
 rule samtools_flagstat:
     input:
-        bam="output/{sample}.bam"
+        bam="data/aligned_reads/{sample}.bam"
     output:
         flagstat="qc/aligned/{sample}.flagstat.txt"
     shell:
@@ -149,7 +154,7 @@ rule samtools_flagstat:
 
 rule samtools_stats:
     input:
-        bam="output/{sample}.bam"
+        bam="data/aligned_reads/{sample}.bam"
     output:
         stats="qc/aligned/{sample}.stats.txt"
     shell:
@@ -159,23 +164,154 @@ rule samtools_stats:
 
 rule aggregate_flagstat:
     input:
-        expand("qc/aligned/{sample}.flagstat.txt", sample=SAMPLES.keys())
+        flagstats=expand("qc/aligned/{sample}.flagstat.txt", sample=SAMPLES.keys()),
+        depths=expand("qc/aligned/{sample}.depth_summary.csv", sample=SAMPLES.keys())
     output:
-        "qc/aligned/flagstat_summary.csv"
+        "qc/aligned/summary_metrics.csv"
     run:
-        import re
-        import csv
-
         summary = []
-        for f in input:
+        # Read flagstat metrics
+        for f in input.flagstats:
             sample = f.split("/")[-1].replace(".flagstat.txt", "")
             with open(f) as fh:
                 lines = fh.readlines()
-            # Parse total reads and mapped reads from flagstat output
             total_reads = int(re.match(r"(\d+) \+ \d+ in total", lines[0]).group(1))
             mapped_reads = int(re.match(r"(\d+) \+ \d+ mapped", lines[4]).group(1))
             pct_mapped = mapped_reads / total_reads * 100 if total_reads else 0
-            summary.append({"sample": sample, "total_reads": total_reads, "mapped_reads": mapped_reads, "pct_mapped": pct_mapped})
+
+            # Read depth summary for the sample
+            depth_file = f"qc/aligned/{sample}.depth_summary.csv"
+            depth_df = pd.read_csv(depth_file)
+            mean_depth = depth_df["mean_depth"].values[0]
+
+            summary.append({
+                "sample": sample,
+                "total_reads": total_reads,
+                "mapped_reads": mapped_reads,
+                "pct_mapped": pct_mapped,
+                "mean_depth": mean_depth
+            })
+
+        keys = summary[0].keys()
+        with open(output[0], "w", newline="") as csvfile:
+            dict_writer = csv.DictWriter(csvfile, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(summary)
+
+# Mark duplicates
+
+rule mark_duplicates:
+    input:
+        bam="data/aligned_reads/{sample}.bam",
+        bai="data/aligned_reads/{sample}.bam.bai"
+    output:
+        dedup_bam="data/deduplicated/{sample}.dedup.bam",
+        dedup_bai="data/deduplicated/{sample}.dedup.bam.bai",
+        metrics="dedup/{sample}.metrics.txt"
+    shell:
+        """
+        gatk MarkDuplicates \
+          -I {input.bam} \
+          -O {output.dedup_bam} \
+          -M {output.metrics} \
+          --CREATE_INDEX true
+        """
+
+# Base quality score recalibration
+
+rule base_recalibrator:
+    input:
+        bam="data/deduplicated/{sample}.dedup.bam",
+        bai="data/deduplicated/{sample}.dedup.bam.bai",
+        ref=REF,
+        known_sites="reference/known_sites.vcf"  # e.g., dbSNP or other trusted variants
+    output:
+        recal_table="data/recalibrated_reads/{sample}.recal.table"
+    shell:
+        """
+        gatk BaseRecalibrator \
+          -I {input.bam} \
+          -R {input.ref} \
+          --known-sites {input.known_sites} \
+          -O {output.recal_table}
+        """
+
+rule apply_bqsr:
+    input:
+        bam="data/deduplicated/{sample}.dedup.bam",
+        bai="data/deduplicated/{sample}.dedup.bam.bai",
+        ref=REF,
+        recal_table="data/recalibrated_reads/{sample}.recal.table"
+    output:
+        bam_recal="data/recalibrated_reads/{sample}.recal.bam",
+        bai_recal="data/recalibrated_reads/{sample}.recal.bam.bai"
+    shell:
+        """
+        gatk ApplyBQSR \
+          -R {input.ref} \
+          -I {input.bam} \
+          --bqsr-recal-file {input.recal_table} \
+          -O {output.bam_recal} &&
+        samtools index {output.bam_recal}
+        """
+
+# Post-BQSR QC
+
+rule samtools_flagstat_post_bqsr:
+    input:
+        bam="data/recalibrated_reads/{sample}.recal.bam"
+    output:
+        flagstat="qc/aligned_post_bqsr/{sample}.flagstat.txt"
+    shell:
+        "samtools flagstat {input.bam} > {output.flagstat}"
+
+rule samtools_stats_post_bqsr:
+    input:
+        bam="data/recalibrated_reads/{sample}.recal.bam"
+    output:
+        stats="qc/aligned_post_bqsr/{sample}.stats.txt"
+    shell:
+        "samtools stats {input.bam} > {output.stats}"
+
+rule depth_summary_post_bqsr:
+    input:
+        bam="data/recalibrated_reads/{sample}.recal.bam"
+    output:
+        depth_summary="qc/aligned_post_bqsr/{sample}.depth_summary.csv"
+    shell:
+        """
+        samtools depth -a {input.bam} | \
+        awk '{{sum+=$3; count++}} END {{print "mean_depth", sum/count}}' > {output.depth_summary}
+        """
+
+rule aggregate_flagstat_post_bqsr:
+    input:
+        flagstats=expand("qc/aligned_post_bqsr/{sample}.flagstat.txt", sample=SAMPLES.keys()),
+        depths=expand("qc/aligned_post_bqsr/{sample}.depth_summary.csv", sample=SAMPLES.keys())
+    output:
+        "qc/aligned_post_bqsr/summary_metrics.csv"
+    run:
+        summary = []
+        for f in input.flagstats:
+            sample = f.split("/")[-1].replace(".flagstat.txt", "")
+            with open(f) as fh:
+                lines = fh.readlines()
+            total_reads = int(re.match(r"(\d+) \+ \d+ in total", lines[0]).group(1))
+            mapped_reads = int(re.match(r"(\d+) \+ \d+ mapped", lines[4]).group(1))
+            pct_mapped = mapped_reads / total_reads * 100 if total_reads else 0
+
+            # Read depth summary for the sample
+            depth_file = f"qc/aligned_post_bqsr/{sample}.depth_summary.csv"
+            depth_df = pd.read_csv(depth_file)
+            mean_depth = depth_df["mean_depth"].values[0]
+
+            summary.append({
+                "sample": sample,
+                "total_reads": total_reads,
+                "mapped_reads": mapped_reads,
+                "pct_mapped": pct_mapped,
+                "mean_depth": mean_depth
+            })
 
         keys = summary[0].keys()
         with open(output[0], "w", newline="") as csvfile:
@@ -187,12 +323,12 @@ rule aggregate_flagstat:
 
 rule call_variants:
     input:
-        bam="output/{sample}.bam",
-        bai="output/{sample}.bam.bai",
+        bam="data/recalibrated_reads/{sample}.recal.bam",
+        bai="data/recalibrated_reads/{sample}.recal.bam.bai",
         ref=REF,
         bed=lambda w: SAMPLES[w.sample]["bed"]
     output:
-        vcf="results/vcf/{sample}.vcf.gz"
+        vcf="data/variant_calls/{sample}.vcf.gz"
     shell:
         """
         gatk HaplotypeCaller \
@@ -205,10 +341,26 @@ rule call_variants:
 
 rule extract_variants:
     input:
-        vcf="results/vcf/{sample}.vcf.gz"
+        vcf="data/variant_calls/{sample}.vcf.gz"
     output:
         tsv="results/{sample}.variants.tsv"
     shell:
         """
         bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\n' {input.vcf} > {output.tsv}
+        """
+
+# Annotate variants
+
+rule annotate_variants:
+    input:
+        vcf="data/variant_calls/{sample}.vcf.gz"
+    output:
+        annotated_vcf="results/{sample}.annotated.vcf.gz",
+        annotated_vcf_index="results/{sample}.annotated.vcf.gz.tbi"
+    params:
+        snpeff_db="GRCh38.86"  # adjust to your SnpEff database name
+    shell:
+        """
+        snpEff {params.snpeff_db} {input.vcf} | bgzip -c > {output.annotated_vcf}
+        tabix -p vcf {output.annotated_vcf}
         """
