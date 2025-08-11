@@ -1,4 +1,4 @@
-# 🧬 NGS Analysis Project
+# 🧬 NGS Analysis Pipeline
 *Work in Progress*
 
 ## 🚀 Overview
