@@ -34,7 +34,7 @@ Before running the pipeline, please ensure the following files and directories a
 | Reference genome                    | FASTA          | Reference genome for alignment                    | `reference/genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa`    |
 | Reference genome index files               | Multiple       | Index files for the reference (will be created if missing) | Same directory as reference FASTA      |
 | Genes included in panel                | BED            | Target regions (genes) for variant calling                | `reference/panel/{panel}.bed`           |
-| Known variants                           | VCF            | Known variant sites for base recalibration       | `reference/known_sites.vcf`             |
+| Known variants                           | VCF            | Known variant sites for base recalibration       | `reference/variants/All_20180418.vcf.gz`             |
 
 If any file is missing, please obtain or generate it before running the workflow. Make sure all paths match those expected by the pipeline configuration.
 
