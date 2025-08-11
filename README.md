@@ -3,15 +3,15 @@
 
 ## 🚀 Overview
 
-This repository contains Jupyter notebooks for **Next-Generation Sequencing (NGS)** data analysis running on a Linux Virtual Machine (VM). The environment leverages Python with bioinformatics libraries to enable reproducible and efficient genomic data workflows.
+This repository contains Jupyter notebooks for **Next-Generation Sequencing (NGS)** data analysis running on a Linux Virtual Machine (VM). The environment leverages Python with bioinformatics libraries to enable reproducible and efficient genomic data workflows. The current configuration is for variant calling following a sequencing run for a variety of genetic panels.
 
 ---
 
 ## 🔄 Workflow
 
 1. **Data Preparation**  
-   Upload or mount raw sequencing data (FASTQ files) into the Linux VM project directory.  
-   _Tools: Linux command-line utilities (`rsync`, `scp`), VirtualBox shared folders_
+   Upload or mount raw sequencing data (FASTQ files) into the project directory.  
+   _Tools: Linux command-line utilities (`rsync`, `scp`), VirtualBox shared folders, SRA-tools (NCBI)_
 
 2. **Quality Control**  
    Run QC analyses to check sequencing quality.  
