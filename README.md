@@ -40,3 +40,17 @@ The core workflow occurs with Snakemake while a Jupyter Notebook houses data ana
 
    ```bash
    jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser
+
+## ⚙️ Environment Setup
+
+- **Linux VM:** CentOS 7 (or compatible) running the Jupyter Notebook server
+- **Jupyter Notebook:** Accessible remotely on port `8888`
+- **Python Environment:** Includes bioinformatics and data science packages like `Biopython`, `numpy`, `pandas`, and `matplotlib`
+- **VS Code Integration:** Connect VS Code to the remote Jupyter server for seamless editing and execution
+
+To ensure all necessary tools and dependencies are installed, create and activate the conda environment (pipeline) using the provided `environment.yaml` file:
+
+```bash
+conda env create -f environment.yaml
+conda activate pipeline
+
