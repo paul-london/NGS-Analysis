@@ -5,13 +5,13 @@
 
 This repository contains a Next-Generation Sequencing (NGS) data analysis pipeline. The environment leverages Python with bioinformatics libraries running on Linux to enable reproducible and efficient genomic data workflows. 
 
-The current configuration is for variant calling following a sequencing run for a variety of genetic panels. 
+The current configuration is for **variant calling** following a sequencing run for a variety of genetic panels assessing pathogenicity of variants, if present. 
 
 The core workflow occurs with Snakemake while a Jupyter Notebook houses data analytics and visualizations.
 
 ---
 
-## 🔄 Workflow
+## 🧬 Workflow
 
 | Step Number | Step Name              | Description                                                                                   | Tools                                                                                       |
 |:-----------:|------------------------|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
