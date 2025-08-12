@@ -62,7 +62,7 @@ rule bwa_index:
     shell:
         "bwa index {input.fasta}"
 
-# FastQC
+# FastQC - REPLACE WITH FASTP
 
 rule fastqc:
     input:
